@@ -40,6 +40,33 @@ public class boardModel
         return true;
     }
     
+    public boolean playerWon(String playerIcon)
+    {
+        // For loop to check if the palyer won by columns    
+        for(int j = 0; j < 3; j++)
+            {
+                if((gameBoard[0][j] == playerIcon) && (gameBoard[1][j] == playerIcon) && (gameBoard[2][j] == playerIcon))
+                    return true;
+                
+            }
+        
+        // For loop to check if the player won by rows
+        for(int i = 0; i < 3; i++)
+        {
+            if((gameBoard[i][0] == playerIcon) && (gameBoard[i][1] == playerIcon) && (gameBoard[i][2] == playerIcon))
+                return true;
+        }
+        
+        // For loop to check if the palyer won diagonal
+        if((gameBoard[1][1] == playerIcon) &&(gameBoard[0][0] == playerIcon) && (gameBoard[2][2] == playerIcon))
+            return true;
+        
+        //Checks to see if the user won in the reverse diagonal direction
+         if((gameBoard[1][1] == playerIcon) &&(gameBoard[0][2] == playerIcon) && (gameBoard[2][0] == playerIcon))
+            return true;
+         
+            return false;
+    }
     // Checks to see if spot is full
     public boolean isSpotFull(int r, int c)
     {

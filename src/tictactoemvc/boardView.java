@@ -151,6 +151,18 @@ public class boardView extends JFrame
         JOptionPane.showMessageDialog(mainFrame, "Error. Choose another spot"); 
     }
     
+    public int boardFull()
+    {
+        int dialogResult = JOptionPane.showConfirmDialog(null, "Game Board Full. Would you like to restart?");
+        return dialogResult;
+    }
+    
+    public int playerWonView(String playerName)
+    {
+        int dialogResult = JOptionPane.showConfirmDialog(null, playerName + " Won! Would you like to replay?");
+        return dialogResult;
+    }
+    
     public static Icon resizeIcon(ImageIcon icon, int resizedWidth, int resizedHeight)
     {
         Image img = icon.getImage();
@@ -158,12 +170,18 @@ public class boardView extends JFrame
         return new ImageIcon(resizedImage);
     }
     
-    public void setButtonIcon(int row, int column, String player)
+    public void setButtonIcon(int row, int column, boolean p1Turn)
     {
-        if(player == "Player 1")
+        if(p1Turn)
         {
             gameboardButtons[row][column].setText("X");
             gameboardButtons[row][column].setIcon(resizeIcon(redX,180,160));
+        }
+        
+        else
+        {
+            gameboardButtons[row][column].setText("O");
+            gameboardButtons[row][column].setIcon(resizeIcon(blueO,180,160));
         }
     }
     public JFrame getMainFrame() {
