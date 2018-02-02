@@ -9,6 +9,7 @@ package tictactoemvc;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionListener;
@@ -27,6 +28,7 @@ public class boardView extends JFrame
     private JPanel mainMenuPanel;
     private JPanel saveGamePanel;
     private JPanel gameGridPanel;
+    private JPanel messageDisplayPanel;
     private JButton playAIButton;
     private JButton playFriendButton;
     private JButton playOnlineButton;
@@ -37,6 +39,7 @@ public class boardView extends JFrame
     private JButton[][] gameboardButtons;
     private JButton[] saveButtons;
     private JLabel logoLabel;
+    private JLabel waitLabel;
     private ImageIcon redX;
     private ImageIcon blueO;
     
@@ -61,8 +64,12 @@ public class boardView extends JFrame
         // Panel that conatins the Main Menu buttons
         mainMenuPanel = new JPanel();
         
+        messageDisplayPanel = new JPanel();
+        messageDisplayPanel.setLayout(new FlowLayout());
+        
         // Tic Tac Toe game logo
         logoLabel = new JLabel(new ImageIcon(getClass().getResource("tictactoe_logo.png")));
+        waitLabel = new JLabel("Label" ,JLabel.CENTER);
         
         // Buttons for the main menu
         playAIButton= new JButton("Play Against AI");
@@ -101,6 +108,8 @@ public class boardView extends JFrame
         mainMenuPanel.add(loadGameButton);
         mainMenuPanel.add(howToPlayButton);
         mainMenuPanel.add(exitButton);
+        
+        messageDisplayPanel.add(waitLabel);
         
         for(int i = 0; i < 3; i++)
         {
@@ -151,11 +160,47 @@ public class boardView extends JFrame
         JOptionPane.showMessageDialog(mainFrame, "Error. Choose another spot"); 
     }
     
+    public void displayMessage(String message){
+        //JOptionPane.showMessageDialog(mainFrame, message);
+        mainMenuPanel.setVisible(false);
+        waitLabel.removeAll();;
+        waitLabel.setText(message);
+        waitLabel.revalidate();
+        waitLabel.repaint();
+        messageDisplayPanel.removeAll();
+        messageDisplayPanel.setLayout(new FlowLayout());
+        messageDisplayPanel.add(waitLabel);
+        messageDisplayPanel.revalidate();
+        messageDisplayPanel.repaint();
+        mainPanel.removeAll();
+        mainPanel.add(messageDisplayPanel,BorderLayout.CENTER);
+        mainPanel.revalidate();
+        mainPanel.repaint();
+        mainFrame.getContentPane().add(mainPanel);
+        mainFrame.revalidate();
+        mainFrame.repaint();
+        
+    }
+    public String getIPAddressView()
+    {
+        return (String)JOptionPane.showInputDialog("Please input IP Address");
+    }
+    public void serverConnectionEndedView() {
+        JOptionPane.showMessageDialog(mainFrame, "Server Ended Connection!");
+    }
+    public void acceptedClientView() {
+        JOptionPane.showMessageDialog(mainFrame, "Accepted Client Request");
+    }
+    public int getPortNumber()
+    {
+        return Integer.parseInt((String)JOptionPane.showInputDialog("Please input Port Number"));
+    }
+    
     public int boardFull()
     {
         int dialogResult = JOptionPane.showConfirmDialog(null, "Game Board Full. Would you like to restart?");
         return dialogResult;
-    }
+    } 
     
     public int playerWonView(String playerName)
     {
@@ -318,6 +363,14 @@ public class boardView extends JFrame
 
     public void setBlueO(ImageIcon blueO) {
         this.blueO = blueO;
+    }
+
+    public JLabel getWaitLabel() {
+        return waitLabel;
+    }
+
+    public void setWaitLabel(JLabel waitLabel) {
+        this.waitLabel = waitLabel;
     }
    
 }

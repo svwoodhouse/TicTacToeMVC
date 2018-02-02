@@ -7,11 +7,16 @@
 package tictactoemvc;
 
 import java.awt.Image;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -22,13 +27,24 @@ public class boardModel
     private String player1Name;
     private String player2Name;
     private boolean p1Turn;
+    private boolean onlineMode;
     private boolean AIEnabled;
     private String[][] gameBoard;
+    
+    // For multiplayer online
+    private String ip = "localhost";
+    private int port;
+    private Socket socket;
+    private ObjectOutputStream output;
+    private ObjectInputStream input;
+    private ServerSocket serverSocket;
+    private boolean connectionEnded;
+    private boolean accepted;
     
     public void setBoard() {
         gameBoard = new String[3][3];
     }
-    
+ 
     // Checks to see if the game board is full
     public boolean isBoardFull(){
         for(int i = 0; i < 3; i++){
@@ -82,6 +98,7 @@ public class boardModel
         
         else
             gameBoard[r][c] = "O";
+        
     }
     public String getPlayer1Name() {
         return player1Name;
@@ -118,5 +135,79 @@ public class boardModel
     public void setP1Turn(boolean p1Turn) {
         this.p1Turn = p1Turn;
     }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public boolean isOnlineMode() {
+        return onlineMode;
+    }
+
+    public void setOnlineMode(boolean onlineMode) {
+        this.onlineMode = onlineMode;
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
+    }
+
+    public ObjectOutputStream getOutput() {
+        return output;
+    }
+
+    public void setOutput(ObjectOutputStream output) {
+        this.output = output;
+    }
+
+    public ObjectInputStream getInput() {
+        return input;
+    }
+
+    public void setInput(ObjectInputStream input) {
+        this.input = input;
+    }
+
+    public ServerSocket getServerSocket() {
+        return serverSocket;
+    }
+
+    public void setServerSocket(ServerSocket serverSocket) {
+        this.serverSocket = serverSocket;
+    }
+
+    public boolean isConnectionEnded() {
+        return connectionEnded;
+    }
+
+    public void setConnectionEnded(boolean connectionEnded) {
+        this.connectionEnded = connectionEnded;
+    }
+
+    public boolean isAccepted() {
+        return accepted;
+    }
+
+    public void setAccepted(boolean accepted) {
+        this.accepted = accepted;
+    }
+    
+    
     
 }
