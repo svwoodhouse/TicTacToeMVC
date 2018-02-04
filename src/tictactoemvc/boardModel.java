@@ -7,6 +7,8 @@
 package tictactoemvc;
 
 import java.awt.Image;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -35,11 +37,13 @@ public class boardModel
     private String ip = "localhost";
     private int port;
     private Socket socket;
-    private ObjectOutputStream output;
-    private ObjectInputStream input;
+    private DataOutputStream  output;
+    private DataInputStream input;
     private ServerSocket serverSocket;
     private boolean connectionEnded;
     private boolean accepted;
+    private boolean client;
+    private boolean server;
     
     public void setBoard() {
         gameBoard = new String[3][3];
@@ -168,19 +172,19 @@ public class boardModel
         this.socket = socket;
     }
 
-    public ObjectOutputStream getOutput() {
+    public DataOutputStream getOutput() {
         return output;
     }
 
-    public void setOutput(ObjectOutputStream output) {
+    public void setOutput(DataOutputStream output) {
         this.output = output;
     }
 
-    public ObjectInputStream getInput() {
+    public DataInputStream getInput() {
         return input;
     }
 
-    public void setInput(ObjectInputStream input) {
+    public void setInput(DataInputStream input) {
         this.input = input;
     }
 
@@ -206,6 +210,22 @@ public class boardModel
 
     public void setAccepted(boolean accepted) {
         this.accepted = accepted;
+    }
+
+    public boolean isClient() {
+        return client;
+    }
+
+    public void setClient(boolean client) {
+        this.client = client;
+    }
+
+    public boolean isServer() {
+        return server;
+    }
+
+    public void setServer(boolean server) {
+        this.server = server;
     }
     
     

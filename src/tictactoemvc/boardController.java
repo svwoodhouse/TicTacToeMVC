@@ -10,12 +10,20 @@ package tictactoemvc;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -42,6 +50,8 @@ class boardController
         view.getHowToPlayButton().addActionListener(listener);
         view.getLoadGameButton().addActionListener(listener);
         view.getExitButton().addActionListener(listener);
+        view.getServerButton().addActionListener(listener);
+        view.getClientButton().addActionListener(listener);
         
         // Game Panel buttons
         for(int i = 0; i < 3; i++)
@@ -72,7 +82,7 @@ class boardController
             }
         }
     }
-    
+   
     private void playerTurn(int row, int column)
     {
         // Checks to see if the spot chosen is available
@@ -184,56 +194,113 @@ class boardController
     {
         
     }
-
-    private void closeConnection() throws IOException
-    {
-        view.displayMessage("Closing Connection....");
-        try{
-            model.getOutput().close();
-            model.getInput().close();
-            model.getSocket().close();
-        } catch(IOException e){
-            e.printStackTrace();
-        }
-    }
-   
-    // Connects to the server
-    public boolean connectToServer(){
-        try {
-            model.setSocket(new Socket(model.getIp(), model.getPort()));
-            model.setOutput(new ObjectOutputStream(model.getSocket().getOutputStream()));
-            model.setInput(new ObjectInputStream(model.getSocket().getInputStream()));
-            model.setAccepted(true);
-            model.setBoard();
-            view.setGameBoardView();
-            
-        } catch (Exception e) {
-           // view.displayMessage("Unable to connect to the address: " + model.getIp() + ":" + model.getPort() + " | Starting a server");
-            return false;
-        }
-        view.displayMessage("Successfully connected to the server");
-        return true;
-    }
     
-    // Waits until a socket is connected to the server socket
-    public void runServer() throws IOException
+    public void startSender() 
     {
-        model.setSocket(null);
-        model.setServerSocket(new ServerSocket(model.getPort()));
-        try{
-            model.setSocket(model.getServerSocket().accept());
-            model.setOutput(new ObjectOutputStream(model.getSocket().getOutputStream()));
-            model.setInput(new ObjectInputStream(model.getSocket().getInputStream()));
-            view.displayMessage("Accepted Client Request");
-            model.setBoard();
-            view.setGameBoardView();
+        try {
+            model.setSocket(new Socket("localhost", 60010));
+            model.setOutput(new DataOutputStream((model.getSocket().getOutputStream())));
+            model.getOutput().writeChars("Hello World");
+            model.getOutput().flush();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+    
+    public void sendClick() throws IOException
+    {
+        model.getOutput().writeInt(0);
+        model.getOutput().flush();
+        model.getOutput().writeInt(1);
+        model.getOutput().flush();
+        model.getOutput().writeBoolean(!model.getP1Turn());
+        model.getOutput().flush();
+    }
+    
+    public void recieveClick() throws IOException
+    {
+        int row = model.getInput().readInt();
+        int column = model.getInput().readInt();
+        boolean playerTurn = model.getInput().readBoolean();
+        
+        System.out.println(row);
+        System.out.println(column);
+        System.out.println(playerTurn);
+    }
+    
+    public void startServer()
+    {
+        try {
+                model.setServerSocket(new ServerSocket(60010));
+                model.setSocket(model.getServerSocket().accept());
+                model.setInput(new DataInputStream((model.getSocket().getInputStream())));
+                String line = model.getInput().toString();
+                System.out.println(line);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
+        
     class ButtonListener implements ActionListener
     {
-        public void actionPerformed(ActionEvent e) {
+        public void actionPerformed(ActionEvent e) 
+        {
+            // Checks to see if online mode is on and disables the buttons for the player
+            // waiting for their turn
+            /*
+            if(model.isOnlineMode())
+            {
+                // If its the server/ player 1 turn, disables the buttons for player 2/client
+                if(model.getP1Turn() && model.isClient())
+                {
+                    for(int i = 0; i < 3; i++)
+                    {
+                        for(int j = 0; j < 3; j++)
+                        {
+                            view.getGameboardButtons()[i][j].setEnabled(false);
+                        }
+                    }
+                }
+                
+                // If its the clients turn enables the button
+                else if(!model.getP1Turn() && model.isClient())
+                {
+                    for(int i = 0; i < 3; i++)
+                    {
+                        for(int j = 0; j < 3; j++)
+                        {
+                            view.getGameboardButtons()[i][j].setEnabled(true);
+                        }
+                    }
+                }
+                
+                // if its the player 1 turn, enables the buttons
+                else if(model.getP1Turn() && model.isServer())
+                {
+                    for(int i = 0; i < 3; i++)
+                    {
+                        for(int j = 0; j < 3; j++)
+                        {
+                            view.getGameboardButtons()[i][j].setEnabled(true);
+                        }
+                    }
+                }
+                
+                else
+                {
+                    for(int i = 0; i < 3; i++)
+                    {
+                        for(int j = 0; j < 3; j++)
+                        {
+                            view.getGameboardButtons()[i][j].setEnabled(false);
+                        }
+                    }
+                }
+            }
+*/
+            
             if(e.getSource() == view.getSaveButtons()[0])
             {
                 saveGame();
@@ -241,7 +308,55 @@ class boardController
             }
             
             else if(e.getSource() == view.getSaveButtons()[1])
+            {
                 System.exit(0);
+            }
+            
+            else if(e.getSource() == view.getServerButton())
+            {
+                startServer();
+                model.setAIEnabled(false);
+                model.setP1Turn(true);
+                model.setAccepted(true);
+                model.setServer(true);
+                model.setClient(false);
+                model.setOnlineMode(true);
+                model.setPlayer1Name("Player 1 - Server");
+                model.setPlayer2Name("Player 2 - Client");
+                view.displayMessage("Client Accepted Challlenge");
+                model.setBoard();
+                view.setGameBoardView();
+                try {
+                    sendClick();
+                } catch (IOException ex) {
+                    Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            
+            else if(e.getSource() == view.getClientButton()) {
+                startSender();
+                model.setAIEnabled(false);
+                model.setP1Turn(true);
+                model.setAccepted(true);
+                model.setServer(false);
+                model.setClient(true);
+                model.setOnlineMode(true);
+                model.setPlayer1Name("Player 1 - Server");
+                model.setPlayer2Name("Player 2 - Client");
+                view.displayMessage("Server Accepted Challlenge");
+                model.setBoard();
+                view.setGameBoardView();
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                try {
+                    recieveClick();
+                } catch (IOException ex) {
+                    Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
             
             else if(e.getSource() == view.getExitButton())
                 System.exit(0);
@@ -255,12 +370,7 @@ class boardController
                 model.setPlayer2Name("Computer");
                 model.setP1Turn(true);
                 model.setAIEnabled(true);
-                view.displayMessage("Started playign comp");
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                view.displayMessage("Started playing against computer");
                 model.setBoard();
                 view.setGameBoardView();
             }
@@ -275,36 +385,14 @@ class boardController
                 view.setGameBoardView();
             }
             
-            else if(e.getSource() == view.getPlayOnlineButton())
-            {
-                model.setPlayer1Name("Player 1");
-                model.setPlayer2Name("Player 2");
-                model.setAIEnabled(false);
-                model.setOnlineMode(true);
-                model.setP1Turn(true);
-                model.setIp(view.getIPAddressView().toLowerCase());
-                model.setPort(view.getPortNumber());
+            //if the online feature is enabled
+          //  else if(model.isOnlineMode())
+         //   {
                 
-                if(!connectToServer())
-                {
-                    try {
-                        runServer();
-                    } catch (IOException ex) {
-                        Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-                
-                else
-                {
-                    connectToServer();
-                    model.setP1Turn(true);
-                    model.setAccepted(true);
-                    model.setBoard();
-                    view.setGameBoardView();
-                }
+         //   }
+            else if(e.getSource() == view.getPlayOnlineButton()){
+                view.onlinePlayView();
             }
-            
-            // If its one of the game board buttons
             
             else if(e.getSource() == view.getGameboardButtons()[0][0]) {
                 playerTurn(0, 0);
@@ -333,7 +421,6 @@ class boardController
             else if(e.getSource() == view.getGameboardButtons()[2][2]) {
                 playerTurn(2, 2);
             }
-        }
-        
+        }   
     }
 }

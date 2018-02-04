@@ -10,9 +10,12 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.event.ActionListener;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -27,8 +30,8 @@ public class boardView extends JFrame
     private JPanel mainPanel;
     private JPanel mainMenuPanel;
     private JPanel saveGamePanel;
+    private JPanel onlinePlayPanel;
     private JPanel gameGridPanel;
-    private JPanel messageDisplayPanel;
     private JButton playAIButton;
     private JButton playFriendButton;
     private JButton playOnlineButton;
@@ -36,10 +39,11 @@ public class boardView extends JFrame
     private JButton howToPlayButton;
     private JButton exitButton;
     private JButton saveGameButton;
+    private JButton serverButton;
+    private JButton clientButton;
     private JButton[][] gameboardButtons;
     private JButton[] saveButtons;
     private JLabel logoLabel;
-    private JLabel waitLabel;
     private ImageIcon redX;
     private ImageIcon blueO;
     
@@ -63,13 +67,11 @@ public class boardView extends JFrame
 
         // Panel that conatins the Main Menu buttons
         mainMenuPanel = new JPanel();
-        
-        messageDisplayPanel = new JPanel();
-        messageDisplayPanel.setLayout(new FlowLayout());
-        
+        onlinePlayPanel = new JPanel();
+        onlinePlayPanel.setLayout(new GridLayout(1,2));
+  
         // Tic Tac Toe game logo
         logoLabel = new JLabel(new ImageIcon(getClass().getResource("tictactoe_logo.png")));
-        waitLabel = new JLabel("Label" ,JLabel.CENTER);
         
         // Buttons for the main menu
         playAIButton= new JButton("Play Against AI");
@@ -92,12 +94,18 @@ public class boardView extends JFrame
         saveButtons[0] = new JButton("Save");
         saveButtons[1] = new JButton("Exit");
         
+        serverButton = new JButton("Server");
+        clientButton = new JButton("Client");
+        
         playAIButton.setPreferredSize(new Dimension(100, 100));
         playFriendButton.setPreferredSize(new Dimension(100, 100));
         playOnlineButton.setPreferredSize(new Dimension(100, 100));
         loadGameButton.setPreferredSize(new Dimension(100, 100));
         howToPlayButton.setPreferredSize(new Dimension(100, 100));
         exitButton.setPreferredSize(new Dimension(100, 100));
+        
+        serverButton.setPreferredSize(new Dimension(100,100));
+        clientButton.setPreferredSize(new Dimension(100,100));
         
         // Creates a GridLayout to contain the buttons in the JPanel
         // Adds the buttons to the buttonPanel
@@ -109,8 +117,6 @@ public class boardView extends JFrame
         mainMenuPanel.add(howToPlayButton);
         mainMenuPanel.add(exitButton);
         
-        messageDisplayPanel.add(waitLabel);
-        
         for(int i = 0; i < 3; i++)
         {
             for(int j = 0; j < 3; j++)
@@ -120,6 +126,9 @@ public class boardView extends JFrame
         }
         saveGamePanel.add(saveButtons[0]);
         saveGamePanel.add(saveButtons[1]);
+        
+        onlinePlayPanel.add(serverButton);
+        onlinePlayPanel.add(clientButton);
         
         // Sets the main panel to the mainMenuPanel
         // Adds it to the main frame
@@ -156,41 +165,33 @@ public class boardView extends JFrame
         mainFrame.repaint();
     }
     
-    public void errorSpotFull(){
-        JOptionPane.showMessageDialog(mainFrame, "Error. Choose another spot"); 
-    }
-    
-    public void displayMessage(String message){
-        //JOptionPane.showMessageDialog(mainFrame, message);
+    public void onlinePlayView()
+    {
         mainMenuPanel.setVisible(false);
-        waitLabel.removeAll();;
-        waitLabel.setText(message);
-        waitLabel.revalidate();
-        waitLabel.repaint();
-        messageDisplayPanel.removeAll();
-        messageDisplayPanel.setLayout(new FlowLayout());
-        messageDisplayPanel.add(waitLabel);
-        messageDisplayPanel.revalidate();
-        messageDisplayPanel.repaint();
         mainPanel.removeAll();
-        mainPanel.add(messageDisplayPanel,BorderLayout.CENTER);
+        mainPanel.setLayout(new BorderLayout());
+        mainPanel.add(logoLabel,BorderLayout.NORTH);
+        mainPanel.add(onlinePlayPanel, BorderLayout.SOUTH);
         mainPanel.revalidate();
         mainPanel.repaint();
         mainFrame.getContentPane().add(mainPanel);
         mainFrame.revalidate();
         mainFrame.repaint();
-        
     }
+    
+    public void errorSpotFull(){
+        JOptionPane.showMessageDialog(mainFrame, "Error. Choose another spot"); 
+    }
+    
+    public void displayMessage(String message){
+        JOptionPane.showMessageDialog(mainFrame, message);
+    }
+    
     public String getIPAddressView()
     {
         return (String)JOptionPane.showInputDialog("Please input IP Address");
     }
-    public void serverConnectionEndedView() {
-        JOptionPane.showMessageDialog(mainFrame, "Server Ended Connection!");
-    }
-    public void acceptedClientView() {
-        JOptionPane.showMessageDialog(mainFrame, "Accepted Client Request");
-    }
+
     public int getPortNumber()
     {
         return Integer.parseInt((String)JOptionPane.showInputDialog("Please input Port Number"));
@@ -363,14 +364,31 @@ public class boardView extends JFrame
 
     public void setBlueO(ImageIcon blueO) {
         this.blueO = blueO;
+    } 
+
+    public JPanel getOnlinePlayPanel() {
+        return onlinePlayPanel;
     }
 
-    public JLabel getWaitLabel() {
-        return waitLabel;
+    public void setOnlinePlayPanel(JPanel onlinePlayPanel) {
+        this.onlinePlayPanel = onlinePlayPanel;
     }
 
-    public void setWaitLabel(JLabel waitLabel) {
-        this.waitLabel = waitLabel;
+    public JButton getServerButton() {
+        return serverButton;
     }
+
+    public void setServerButton(JButton serverButton) {
+        this.serverButton = serverButton;
+    }
+
+    public JButton getClientButton() {
+        return clientButton;
+    }
+
+    public void setClientButton(JButton clientButton) {
+        this.clientButton = clientButton;
+    }
+    
    
 }
