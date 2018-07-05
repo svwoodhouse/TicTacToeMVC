@@ -37,8 +37,8 @@ public class boardModel
     private String ip = "localhost";
     private int port;
     private Socket socket;
-    private DataOutputStream  output;
-    private DataInputStream input;
+    private ObjectOutputStream  output;
+    private ObjectInputStream input;
     private ServerSocket serverSocket;
     private boolean connectionEnded;
     private boolean accepted;
@@ -53,7 +53,7 @@ public class boardModel
     public boolean isBoardFull(){
         for(int i = 0; i < 3; i++){
             for(int j = 0; j < 3; j++){
-                if(gameBoard[i][j] == null)
+                if(gameBoard[i][j] == null || gameBoard[i][j] == "")
                     return false;
             }
         }
@@ -132,6 +132,10 @@ public class boardModel
         return gameBoard;
     }
     
+    public void setGameBoard(String[][] gameBoard) {
+        this.gameBoard = gameBoard;
+    }
+    
     public boolean getP1Turn() {
         return p1Turn;
     }
@@ -172,19 +176,19 @@ public class boardModel
         this.socket = socket;
     }
 
-    public DataOutputStream getOutput() {
+    public ObjectOutputStream getOutput() {
         return output;
     }
 
-    public void setOutput(DataOutputStream output) {
+    public void setOutput(ObjectOutputStream output) {
         this.output = output;
     }
 
-    public DataInputStream getInput() {
+    public ObjectInputStream getInput() {
         return input;
     }
 
-    public void setInput(DataInputStream input) {
+    public void setInput(ObjectInputStream input) {
         this.input = input;
     }
 
