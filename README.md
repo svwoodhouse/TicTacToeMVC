@@ -1,11 +1,13 @@
 # TicTacToeMVC
-# Project Title
 
-One Paragraph of project description goes here
+This is a Tic Tac Toe application created in Java using the NetBeans IDE and Java Swing GUI. With this application, you can play against the 
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+git clone git@github.com:svwoodhouse/TicTacToe.git
+cd ./TicTacToe/src
+javac TicTacToe.java
+java TicTacToe
 
 ### Prerequisites
 
