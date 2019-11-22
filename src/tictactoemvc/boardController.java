@@ -236,7 +236,7 @@ class boardController
                 view.setButtonIcon(row, column,model.getP1Turn());
                 model.setP1Turn(true);
                 
-                //Checks to see if player 1 won the game
+                //Checks to see if player 2 won the game
                 if(model.playerWon("O"))
                 {
                     if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
@@ -288,14 +288,15 @@ class boardController
             /**/
             model.setSocket(new Socket("localhost", 60010));
             model.setOutput(new ObjectOutputStream((model.getSocket().getOutputStream())));
+            model.setInput(new ObjectInputStream((model.getSocket().getInputStream())));
            // model.getOutput().writeBytes("Hello World");
            // model.getOutput().flush();
-            model.getOutput().writeObject(89);
-            model.getOutput().flush();
-            model.getOutput().writeObject(89768);
-            model.getOutput().flush();
-            model.getOutput().writeObject(!model.getP1Turn());
-            model.getOutput().flush();
+        //    model.getOutput().writeObject(89);
+        //    model.getOutput().flush();
+        //    model.getOutput().writeObject(89768);
+        //    model.getOutput().flush();
+        //    model.getOutput().writeObject(!model.getP1Turn());
+        //    model.getOutput().flush();
             
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -307,29 +308,39 @@ class boardController
     // Sends the online user moves to the other player
     public void sendClick(int row, int column, boolean playerTurn) throws IOException
     {
-        model.getOutput().writeObject(row);
-        model.getOutput().flush();
-        model.getOutput().writeObject(column);
-        model.getOutput().flush();
-        model.getOutput().writeObject(playerTurn);
-        model.getOutput().flush();
+        if(model.isSpotFull(row, column))
+            view.errorSpotFull();
+        
+        else{
+            model.getOutput().writeObject(row);
+            model.getOutput().flush();
+            model.getOutput().writeObject(column);
+            model.getOutput().flush();
+            model.getOutput().writeObject(playerTurn);
+            model.getOutput().flush();
+
+            view.setButtonIcon(row, column,model.getP1Turn());
+            model.setMove(row, column);  
+            model.setP1Turn(!playerTurn);
+        }
     }
     
     // Waits for the user to input a click and then sets it accordingl
     public void recieveClick() throws IOException
     {
-        do{
+      //  do{
             try {
                     int row = (int) model.getInput().readObject();
                     int column = (int) model.getInput().readObject();
-                    boolean playerTurn =(boolean)model.getInput().readObject(); 
+                    boolean playerTurn =(boolean)model.getInput().readObject();
                     model.setP1Turn(playerTurn);
                     view.setButtonIcon(row, column,model.getP1Turn());
-                    model.setMove(row, row);                
+                    model.setMove(row, column);
+                    model.setP1Turn(!playerTurn);
                     } catch (ClassNotFoundException classNotFound) {
                         System.out.println("\n idk wtf that user sent!");
                     }    
-        }while (model.getP1Turn() != true);   
+    //    }while (model.getP1Turn() != true);   
     }
     
     public void startServer()
@@ -339,8 +350,8 @@ class boardController
                 // Opens a new Server Socket and waits for a client to connect
                 model.setServerSocket(new ServerSocket(60010));
                 
-                while(model.isOnlineMode())
-                {
+              //  while(model.isOnlineMode())
+               // {
                     try 
                     {
                         // Client accepts the Server socket
@@ -351,7 +362,7 @@ class boardController
                         model.getOutput().flush();
                         // FOR TESTING ONLY
                         // Reads the dummy data sent from the client and prints it to the screen
-                         try {
+                     /*    try {
                                 int row = (int) model.getInput().readObject();
                                 int column = (int) model.getInput().readObject();
                                 boolean playerTurn =(boolean)model.getInput().readObject();
@@ -365,28 +376,21 @@ class boardController
                                 model.getOutput().flush();
                                 model.getOutput().writeObject(!model.getP1Turn());
                                 model.getOutput().flush();
-                            } 
-                        catch (ClassNotFoundException classNotFound) {
-                                System.out.println("\n idk wtf that user sent!");
-                            }
+                            } */
+                   // }// catch (ClassNotFoundException classNotFound) {
+                          //      System.out.println("\n idk wtf that user sent!");
+                         //   }
                          
                             //whileChatting();
                     } catch (EOFException ex) {
                         System.out.println("\n Server Ended the connection!");
-                    }finally{
-                        System.out.println("\n Closing connections...\n");
-                            try {
-                                    model.getOutput().close();
-                                    model.getInput().close();
-                                    model.getSocket().close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                                            }
-                                        }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                    }catch (IOException ex) {
+            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        // }
+    }   catch (IOException ex) {
+            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
         
     class ButtonListener implements ActionListener
@@ -447,7 +451,22 @@ class boardController
             
             // If users chooses to exit the game
             else if(e.getSource() == view.getExitButton())
-                System.exit(0);
+            {
+                if(model.isOnlineMode())
+                {
+                    System.out.println("\n Closing connections...\n");
+                        try {
+                                model.getOutput().close();
+                                model.getInput().close();
+                                model.getSocket().close();
+                                System.exit(0);
+                            } catch (IOException ex) {
+                                ex.printStackTrace();
+                            }
+                }
+                else
+                    System.exit(0);
+            }
             
             //If user wants to see the How-To-Play option
             else if(e.getSource() == view.getHowToPlayButton())
@@ -486,52 +505,909 @@ class boardController
             {
                 if(model.isOnlineMode())
                 {
-                    // If its the server/player 1 turn
-                    if(model.getP1Turn())
+                    // Checks to make sure it is Player 1's turn. If so, it sends the
+                    // data for the clicked game board to Player 2 to rerender the GUI.
+                    // Checks to see if Player 1 is the winner and if so, allows the user 
+                    // to choose whether to play again or not.
+                    // Checks to see if the board is full and if so, asks if there should be a restarted game
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        // Sends data to Player 2 to update GUI
                         try {
-                            sendClick(0,0,true);
-                    } catch (IOException ex) {
-                        Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                                sendClick(0,0,true);
+                                
+                                //Checks to see if Player 1 won
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+                            } 
+                        catch (IOException ex) 
+                        {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                     
                     else
+                    {
                         try {
                             sendClick(0,0,false);
-                    } catch (IOException ex) {
-                        Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    try {
-                        recieveClick();
-                    } catch (IOException ex) {
-                        Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            
+                            if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                            } 
+                        
+                        catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
                     }
                 }
                 else
                     playerTurn(0, 0);
             }
             else if(e.getSource() == view.getGameboardButtons()[0][1]) {
-                playerTurn(0, 1);
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                                sendClick(0,1,true);
+                                
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                
+                                else
+                                    recieveClick();
+                                } 
+                        
+                        catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        } 
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(0,1,false);
+                                                        if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }
+                else
+                    playerTurn(0, 1);
             }
             else if(e.getSource() == view.getGameboardButtons()[0][2]) {
-                playerTurn(0, 2);
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                              sendClick(0,2,true);
+                              
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+                            } catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(0,2,false);
+                                                        if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }
+                else
+                    playerTurn(0, 2);
             }
             else if(e.getSource() == view.getGameboardButtons()[1][0]) {
-                playerTurn(1, 0);
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                                sendClick(1,0,true);
+                                
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+                            
+                            } catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(1,0,false);
+                            if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }
+                else
+                    playerTurn(1, 0);
             }
             else if(e.getSource() == view.getGameboardButtons()[1][1]) {
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                                sendClick(1,1,true);
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+
+                            } catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(1,1,false);
+                                                        if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }   
+            else
                 playerTurn(1, 1);
             }
             else if(e.getSource() == view.getGameboardButtons()[1][2]) {
-                playerTurn(1, 2);
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                                sendClick(1,2,true);
+                                
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+                            
+                            } catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(1,2,false);
+                                                        if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }
+                else
+                    playerTurn(1, 2);
             }
             else if(e.getSource() == view.getGameboardButtons()[2][0]) {
-                playerTurn(2, 0);
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                                sendClick(2,0,true);
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+                            
+                            } catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(2,0,false);
+                                                        if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }
+                else
+                    playerTurn(2, 0);
             }
             else if(e.getSource() == view.getGameboardButtons()[2][1]) {
-                playerTurn(2, 1);
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                                sendClick(2,1,true);
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+                             
+                            } catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(2,1,false);
+                                                        if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }
+                else
+                    playerTurn(2, 1);
             }
             else if(e.getSource() == view.getGameboardButtons()[2][2]) {
-                playerTurn(2, 2);
+                if(model.isOnlineMode())
+                {
+                    // If its the server/player 1 turn
+                    if(model.isServer() && model.getP1Turn())
+                    {
+                        try {
+                                sendClick(2,2,true);
+                                if(model.playerWon("X"))
+                                {
+                                    if(view.playerWonView(model.getPlayer1Name()) == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                
+                            // Checks to see if the board is full
+                                else if(model.isBoardFull())
+                                {
+                                    if(view.boardFull() == JOptionPane.YES_OPTION)
+                                    {
+                                        for(int k = 0; k < 3; k++)
+                                        {
+                                            for(int l = 0; l < 3; l++)
+                                            {
+                                                view.getGameboardButtons()[k][l].setText("");
+                                                view.getGameboardButtons()[k][l].setIcon(null);
+                                                model.getGameBoard()[k][l] = null;
+                                            }
+                                        }
+                                        model.setP1Turn(true);
+                                    }
+                                }
+                                else
+                                    recieveClick();
+                           
+                            } catch (IOException ex) {
+                            Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    
+                    else
+                    {
+                        try {
+                            sendClick(2,2,false);
+                                                        if(model.playerWon("O"))
+                            {
+                                if(view.playerWonView(model.getPlayer2Name()) == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                
+                            // Checks to see if the board is full
+                            else if(model.isBoardFull())
+                            {
+                                if(view.boardFull() == JOptionPane.YES_OPTION)
+                                {
+                                    for(int k = 0; k < 3; k++)
+                                    {
+                                        for(int l = 0; l < 3; l++)
+                                        {
+                                            view.getGameboardButtons()[k][l].setText("");
+                                            view.getGameboardButtons()[k][l].setIcon(null);
+                                            model.getGameBoard()[k][l] = null;
+                                        }
+                                    }
+                                    model.setP1Turn(true);
+                                }
+                            }
+                            
+                            else
+                                recieveClick();
+                        } catch (IOException ex) {
+                                Logger.getLogger(boardController.class.getName()).log(Level.SEVERE, null, ex);
+                            }   
+                    }
+                }
+                else
+                    playerTurn(2, 2);
             }
         }   
     }
