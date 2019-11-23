@@ -3,12 +3,12 @@
 This is a Tic Tac Toe application created in Java using the NetBeans IDE and Java Swing GUI. With this application, you can play against the 
 
 ## Getting Started
-
-git clone git@github.com:svwoodhouse/TicTacToe.git
-cd ./TicTacToe/src
-javac TicTacToe.java
-java TicTacToe
-
+```
+git clone git@github.com:svwoodhouse/TicTacToeMVC.git
+cd ./TicTacToeMVC/src/tictactoemvc
+javac TicTacToeMVC.java
+java TicTacToeMVC
+```
 ### Prerequisites
 
 What things you need to install the software and how to install them
